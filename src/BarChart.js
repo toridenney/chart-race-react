@@ -19,7 +19,7 @@ class BarChart extends React.Component {
         this.barChartStyle = {
             height: `calc(${this.maxItems} * ${this.barHeight})`,
         };
-        let [initRank, maxVal] = this.sortAxis(0);
+        let [initRank, maxVal] = this.sortAxis(0, this.maxItems);
         this.state = {
             idx: 0,
             prevRank: initRank,
@@ -53,7 +53,7 @@ class BarChart extends React.Component {
         return;
       }
       this.setState(prevState => {
-            let [currRank, maxVal] = this.sortAxis(prevState.idx + 1);
+            let [currRank, maxVal] = this.sortAxis(prevState.idx + 1, this.maxItems);
             return {
                 idx: prevState.idx + 1,
                 prevRank: prevState.currRank,
@@ -63,21 +63,39 @@ class BarChart extends React.Component {
         });
     }
 
-    sortAxis = (i, descending) => {
-        if(descending === undefined) descending = true;
-        let toSort = Object.keys(this.props.data).map(name => {
-            return {
-                name: name, 
-                val: this.props.data[name][i]
-            };
-        });
-        toSort.sort((left, right) => descending ? left.val < right.val : left.val > right.val);
-        toSort = toSort.slice(0, this.maxItems);
-        const maxVal = Math.max.apply(Math, toSort.map(item => item.val));
-        return [toSort.reduce((ret, item, idx) => ({
-          ...ret, ...{[item.name]: idx}
-        }), {}), maxVal];
+ /**
+ * sortAxis
+ * Handles sorting the results
+ * @param {*} i is the item to start sorting from
+ * @param {number} maxItems is the maximum number of items to allow in the list
+ * @param {*} descending is the direction to sort
+ */
+  const sortAxis = (i, maxItems, descending) => {
+    if(descending === undefined) descending = true;
+    // Build a new array to sort e.x. { name: 'some name', val: 1 }
+    let toSort = Object.keys(data).map(name => {
+      return {
+        name,
+        val: data[name][i]
+      };
+    });
+    // Handle the sorting based on the values
+    toSort.sort((left, right) => left.val - right.val)
+    if (descending) {
+      toSort.reverse()
     }
+    // Slice based on the maximum items allowed
+    const fItems = Object.keys(data).length
+    if (maxItems && maxItems <= fItems) {
+      toSort = toSort.slice(0, maxItems)
+    }
+    const maxVal = Math.max.apply(Math, toSort.map(item => item.val))
+    const minVal = Math.min.apply(Math, toSort.map(item => item.val))
+    // Sorted list of results based on the axis
+    return [toSort.reduce((ret, item, idx) => ({
+      ...ret, ...{ [item.name]: idx }
+    }), {}), minVal, maxVal]
+  }
 
     getInfoFromRank = name => {
       const currIdx = this.state.idx;
